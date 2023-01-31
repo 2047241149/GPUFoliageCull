@@ -36,14 +36,7 @@ public class GenerateRandomTree : MonoBehaviour
         }
 
         Random.InitState(generateTreeSeed);
-
-        Vector3 terrainPos = terrainObject.GetComponent<Transform>().position;
-        float posXMax = terrainPos.x + terrain.terrainData.size.x;
-        float posXMin = terrainPos.x;
-
-        float posZMax = terrainPos.z + terrain.terrainData.size.z;
-        float posZMin = terrainPos.z;
-
+        
         newTreeInstance = new TreeInstance[treeNum];
         for (int Index = 0; Index < treeNum; Index++)
         {

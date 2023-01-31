@@ -1,0 +1,52 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma enable_d3d11_debug_symbols
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+
+StructuredBuffer<float3> posAllBuffer;
+RWStructuredBuffer<float3> posVisibleBuffer;
+RWStructuredBuffer<int> bufferWithArgs;
+int allCount;
+float4 bounds; // center + radius
+float4 frustumPlanes[6];
+
+float GetDistance2(float3 pos, float4 plane)
+{
+    float a = plane.x * pos.x + plane.y * pos.y +  plane.z * pos.z + plane.w;
+    float aSign = sign(a);
+    float a2 = a * a;
+    float b = plane.x * plane.x + plane.y * plane.y + plane.z * plane.z;
+    return aSign * a2 / b;
+}
+
+int IsOutOfFrustum(float3 pos, float radius, float4 frustum[6])
+{
+    for(int i = 0; i < 6; i++)
+    {
+        float distance2 = GetDistance2(pos, frustum[i]);
+        float r2 = radius * radius;
+        if(distance2 >= r2)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+[numthreads(64, 1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= allCount)
+        return;
+    
+    float3 worldPos = posAllBuffer[id.x];
+    float3 pos =  worldPos + bounds.xyz;
+    if(IsOutOfFrustum(pos, bounds.w, frustumPlanes) == 0)
+    {
+        int currentIndex;
+        InterlockedAdd(bufferWithArgs[0], 1, currentIndex);
+        posVisibleBuffer[currentIndex] = worldPos;
+    }
+}
