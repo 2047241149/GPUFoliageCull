@@ -33,10 +33,10 @@ Shader "Custom/HZB"
             float get_hzb(sampler2D tex, float2 uv, float invSize)
             {
                 float4 depth;
-                float2 uv0 = uv + float2(0, 0) * invSize;
-                float2 uv1 = uv + float2(1, 0) * invSize;
-                float2 uv2 = uv + float2(0, 1) * invSize;
-                float2 uv3 = uv + float2(1, 1) * invSize;
+                float2 uv0 = uv + float2(-0.25f, -0.25f) * invSize;
+                float2 uv1 = uv + float2(0.25f, -0.25f) * invSize;
+                float2 uv2 = uv + float2(-0.25f, 0.25f) * invSize;
+                float2 uv3 = uv + float2(0.25f, 0.25f) * invSize;
 
                 depth.x = tex2D(tex, uv0);
                 depth.y = tex2D(tex, uv1);
