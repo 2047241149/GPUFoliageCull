@@ -75,6 +75,7 @@ public class RenderMassTree : MonoBehaviour
     private ComputeBuffer posVisibleBuffer;
     private ComputeBuffer visiblleCountBuffer;
     private int visibleCount = 0;
+    private HZBRender hzbRender;
     
     bool CollectTreeMesh()
     {
@@ -169,20 +170,22 @@ public class RenderMassTree : MonoBehaviour
 
         //treeMaterial.SetBuffer("posBuffer", meshPropertyArrayBuffer);
         drawIndirectBounds = new Bounds(Vector3.zero, new Vector3(range, range, range));
+
+        hzbRender = GetComponent<HZBRender>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        //Gpu frustum cull
-        GPUFrustumCull();
+        //Gpu cull(frustum cull and hzb cull)
+        GPUCull();
 
         // DrawInstances
         DrawInstanceIndirect();
-
     }
+    
 
-    private void GPUFrustumCull()
+    private void GPUCull()
     {
         if (cullShader)
         {
@@ -198,6 +201,24 @@ public class RenderMassTree : MonoBehaviour
             
             int[] args = new int[1] { 0 };
             visiblleCountBuffer.SetData(args);
+            
+            var m = GL.GetGPUProjectionMatrix( Camera.main.projectionMatrix,false) * Camera.main.worldToCameraMatrix;
+            
+            float[] mlist = new float[] {
+                m.m00,m.m10,m.m20,m.m30,
+                m.m01,m.m11,m.m21,m.m31,
+                m.m02,m.m12,m.m22,m.m32,
+                m.m03,m.m13,m.m23,m.m33
+            };
+
+            if (hzbRender != null && hzbRender.hzbTexture != null)
+            {
+                cullShader.SetTexture(cullTreeKernel,"hizTexture", hzbRender.hzbTexture);
+                cullShader.SetFloat("hizMapSize", hzbRender.hzbTexture.width);
+                cullShader.SetInt("hizMapLevelCount", hzbRender.hzbLevelCount - 1);
+            }
+
+            cullShader.SetFloats("worldToViewProject", mlist);
             cullShader.SetBuffer(cullTreeKernel, "bufferWithArgs", visiblleCountBuffer);
             cullShader.Dispatch(cullTreeKernel, allTreePos.Length / 64 + 1, 1, 1);
         }

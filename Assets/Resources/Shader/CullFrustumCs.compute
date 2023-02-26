@@ -10,6 +10,10 @@ RWStructuredBuffer<int> bufferWithArgs;
 int allCount;
 float4 bounds; // center + radius
 float4 frustumPlanes[6];
+float4x4 worldToViewProject;
+Texture2D<float4> hizTexture;
+float hizMapSize;
+int maxHizMapLevel;
 
 float GetDistance2(float3 pos, float4 plane)
 {
@@ -35,6 +39,55 @@ int IsOutOfFrustum(float3 pos, float radius, float4 frustum[6])
     return 0;
 }
 
+
+float3 TransformToNdc(float3 worldPos)
+{
+    float4 worldAlignPos = float4(worldPos, 1.0);
+    float4 ndc = mul(worldToViewProject, worldAlignPos);
+    ndc.xyz /= ndc.w;
+    ndc.xy = ndc.xy * 0.5 + 0.5;
+    return ndc.xyz;
+}
+
+uint GetHizMapIndex(float2 boundMin, float2  boundMax)
+{
+    float2 uv = (boundMax - boundMin) * hizMapSize;
+    uint2 coord = ceil(log2(uv));
+    uint index =  max(coord.x, coord.y);
+    return min(index, maxHizMapLevel);
+}
+
+bool IsCullByHizMap(float3 pos, float boxWidth)
+{
+    float3 ndc1 = TransformToNdc(pos + float3(boxWidth, boxWidth, boxWidth));
+    float3 ndc2 = TransformToNdc(pos + float3(boxWidth, -boxWidth, boxWidth));
+    float3 ndc3 = TransformToNdc(pos + float3(boxWidth, boxWidth, -boxWidth));
+    float3 ndc4 = TransformToNdc(pos + float3(boxWidth, -boxWidth, -boxWidth));
+    float3 ndc5 = TransformToNdc(pos + float3(-boxWidth, boxWidth, boxWidth));
+    float3 ndc6 = TransformToNdc(pos + float3(-boxWidth, -boxWidth, boxWidth));
+    float3 ndc7 = TransformToNdc(pos + float3(-boxWidth, boxWidth, -boxWidth));
+    float3 ndc8 = TransformToNdc(pos + float3(-boxWidth, -boxWidth, -boxWidth));
+
+    float3 min0 = min(min(ndc1, ndc2), min(ndc3, ndc4));
+    float3 min1 = min(min(ndc5, ndc6), min(ndc7, ndc8));
+    float3 boundsMin = min(min0, min1);
+
+    float3 max0 = max(max(ndc1, ndc2), max(ndc3, ndc4));
+    float3 max1 = max(max(ndc5, ndc6), max(ndc7, ndc8));
+    float3 boundsMax = max(max0, max1);
+    uint mip = GetHizMapIndex(boundsMin, boundsMax);
+
+    float currentHizMapWidth = hizMapSize / pow(2, mip);
+    float2 uv0 = min(currentHizMapWidth - 1, floor(boundsMin.xy * currentHizMapWidth));
+    float2 uv1 = min(currentHizMapWidth - 1, floor(boundsMax.xy * currentHizMapWidth));
+
+    float d0 = hizTexture.mips[mip][uv0].r;
+    float d1 = hizTexture.mips[mip][uv1].r;
+
+    return boundsMax.z < d0 && boundsMax.z < d1;
+}
+
+
 [numthreads(64, 1,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -43,7 +96,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     
     float3 worldPos = posAllBuffer[id.x];
     float3 pos =  worldPos + bounds.xyz;
-    if(IsOutOfFrustum(pos, bounds.w, frustumPlanes) == 0)
+    if(IsOutOfFrustum(pos, bounds.w, frustumPlanes) == 0 && (!IsCullByHizMap(pos, bounds.w)))
     {
         int currentIndex;
         InterlockedAdd(bufferWithArgs[0], 1, currentIndex);
