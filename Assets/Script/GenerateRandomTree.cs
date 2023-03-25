@@ -10,7 +10,7 @@ public class GenerateRandomTree : MonoBehaviour
     public int treeNum = 160000;
     public int generateTreeSeed = 0;
     private TreeInstance[] newTreeInstance;
-
+    
     [ContextMenu("CreateRandomTree")]
     void GenerateTree()
     {

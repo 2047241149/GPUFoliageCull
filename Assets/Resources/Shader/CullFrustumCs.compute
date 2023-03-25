@@ -4,7 +4,8 @@
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 
-StructuredBuffer<float3> posAllBuffer;
+StructuredBuffer<float4> instanceDatas;
+StructuredBuffer<int> treeNodeCullFlag; // 1 mean culled, 0 mean visible
 RWStructuredBuffer<float3> posVisibleBuffer;
 RWStructuredBuffer<int> bufferWithArgs;
 int allCount;
@@ -15,22 +16,18 @@ Texture2D<float4> hizTexture;
 float hizMapSize;
 int maxHizMapLevel;
 
-float GetDistance2(float3 pos, float4 plane)
+
+float GetDistance(float3 pos, float4 plane)
 {
-    float a = plane.x * pos.x + plane.y * pos.y +  plane.z * pos.z + plane.w;
-    float aSign = sign(a);
-    float a2 = a * a;
-    float b = plane.x * plane.x + plane.y * plane.y + plane.z * plane.z;
-    return aSign * a2 / b;
+    return plane.x * pos.x + plane.y * pos.y +  plane.z * pos.z + plane.w;
 }
 
 int IsOutOfFrustum(float3 pos, float radius, float4 frustum[6])
 {
     for(int i = 0; i < 6; i++)
     {
-        float distance2 = GetDistance2(pos, frustum[i]);
-        float r2 = radius * radius;
-        if(distance2 >= r2)
+        float distance = GetDistance(pos, frustum[i]);
+        if(distance >= radius)
         {
             return 1;
         }
@@ -94,7 +91,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(id.x >= allCount)
         return;
     
-    float3 worldPos = posAllBuffer[id.x];
+    float4 instance = instanceDatas[id.x];
+    int clusterId = (int)instance.w;
+    if(treeNodeCullFlag[clusterId] == 1)
+        return;
+
+    float3 worldPos = instance.xyz;
     float3 pos =  worldPos + bounds.xyz;
     if(IsOutOfFrustum(pos, bounds.w, frustumPlanes) == 0 && (!IsCullByHizMap(pos, bounds.w)))
     {
