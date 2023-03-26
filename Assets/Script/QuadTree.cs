@@ -23,11 +23,14 @@ public class TreeNode
     private QuadTree tree;
     public int leafId = -1;
 
+    
     public TreeNode(QuadTree inTree, List<int> inIndices, Vector2 regionMin, Vector2 regionMax)
     {
         tree = inTree;
         treeIndices = inIndices;
-        RefreshBoundingBox();
+        boxMin = new Vector3(regionMin.x, 0, regionMin.y);
+        boxMax = new Vector3(regionMax.x, 0, regionMax.y);
+        //RefreshBoundingBox();
         if (inIndices.Count <= QuadTreeUtil.QUAD_TREE_NODE_MAX_NUM)
         {
             leafId = inTree.leafId;
@@ -133,7 +136,10 @@ public struct InstanceData
 [Serializable]
 public class QuadTree
 {
+    [NonSerialized]
     public Vector3[] alllTreePos;
+    
+    [HideInInspector]
     public InstanceData[] instanceDatas;
     private int[] treeCullFlags;
     public TreeNode rootNode;
@@ -178,7 +184,7 @@ public class QuadTree
         }
     }
 
-    void CullTreeNode(TreeNode node, Vector4[] frustrumPlanes)
+    void CullTreeNode(TreeNode node, Vector4[] frustrumPlanes, bool bDebugVisualize)
     {
         Vector3 boxCenter = (node.boxMax + node.boxMin) / 2.0f;
         Vector3 boxExtend = node.boxMax - boxCenter;
@@ -199,7 +205,7 @@ public class QuadTree
 
         if (bCull)
         {
-            SetNodeCull(node);
+            SetNodeCull(node, bDebugVisualize);
         }
         else
         {
@@ -207,37 +213,76 @@ public class QuadTree
             {
                 if (node.childs != null)
                 {
-                    CullTreeNode(node.childs[0], frustrumPlanes);
-                    CullTreeNode(node.childs[1], frustrumPlanes);
-                    CullTreeNode(node.childs[2], frustrumPlanes);
-                    CullTreeNode(node.childs[3], frustrumPlanes);
+                    CullTreeNode(node.childs[0], frustrumPlanes, bDebugVisualize);
+                    CullTreeNode(node.childs[1], frustrumPlanes, bDebugVisualize);
+                    CullTreeNode(node.childs[2], frustrumPlanes, bDebugVisualize);
+                    CullTreeNode(node.childs[3], frustrumPlanes, bDebugVisualize);
                 }
             }
             else
             {
                 treeCullFlags[node.leafId] = 0;
+
+                if (bDebugVisualize)
+                {
+                    VisualizeNodeBounds(node, Color.white);
+                }
             }
         }
         
     }
 
-    void SetNodeCull(TreeNode node)
+    
+    void VisualizeNodeBounds(TreeNode inNode, Color inColor)
+    {
+        Vector3 leftDown = new Vector3(inNode.boxMin.x, 50, inNode.boxMin.z);
+        Vector3 rightup =new Vector3(inNode.boxMax.x, 50, inNode.boxMax.z);
+        Vector3 leftup = new Vector3(inNode.boxMin.x, 50, inNode.boxMax.z);
+        Vector3 rightdown = new Vector3(inNode.boxMax.x, 50, inNode.boxMin.z);
+        
+        //leftDown - leftup
+        Debug.DrawLine(leftDown, leftup, inColor, 10.0f);
+        
+        //leftDown - rightdown
+        Debug.DrawLine(leftDown, rightdown, inColor, 10.0f);
+        
+        //rightup - leftup
+        Debug.DrawLine(rightup, leftup, inColor, 10.0f);
+        
+        //rightup - rightdown
+        Debug.DrawLine(rightup, rightdown, inColor, 10.0f);
+    }
+
+    void SetNodeCull(TreeNode node, bool bDebugVisualize)
     {
         if (node.bLeafNode)
         {
             treeCullFlags[node.leafId] = 1;
+            if (bDebugVisualize)
+            {
+                VisualizeNodeBounds(node, Color.red);
+            }
         }
         else
         {
             if (node.childs != null)
             {
-                SetNodeCull(node);
+                SetNodeCull(node.childs[0], bDebugVisualize);
+                SetNodeCull(node.childs[1], bDebugVisualize);
+                SetNodeCull(node.childs[2], bDebugVisualize);
+                SetNodeCull(node.childs[3], bDebugVisualize);
             }
         }
     }
 
-    public int[] GetCullResult(Frustum frustum)
+    public int[] GetCullResult(Frustum frustum, bool bValidCull = true, bool bDebugVisualize = false)
     {
+        if (!bValidCull)
+        {
+            treeCullFlags = Enumerable.Repeat<int>(0, leafId).ToArray();
+            return treeCullFlags;
+        }
+
         if (null == treeCullFlags)
         {
             treeCullFlags = Enumerable.Repeat<int>(0, leafId).ToArray();
@@ -250,7 +295,7 @@ public class QuadTree
         planes[3] = frustum.bottomPlane;
         planes[4] = frustum.leftPlane;
         planes[5] = frustum.rightPlane;
-        CullTreeNode(rootNode, planes);
+        CullTreeNode(rootNode, planes, bDebugVisualize);
         return treeCullFlags;
     }
 }

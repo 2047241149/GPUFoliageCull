@@ -31,6 +31,7 @@ public class RenderMassTree : MonoBehaviour
     private ComputeBuffer visiblleCountBuffer;
     private ComputeBuffer treeNodeCullFlagBuffer;
     private int visibleCount = 0;
+    private int visibleCluter = 0;
     private HZBRender hzbRender;
     
 
@@ -143,6 +144,7 @@ public class RenderMassTree : MonoBehaviour
     void Update()
     {
 
+        
         //Gpu cull(frustum cull and hzb cull)
         Cull();
 
@@ -160,10 +162,16 @@ public class RenderMassTree : MonoBehaviour
     private void Cull()
     {
         Frustum frustum = new Frustum(mainCamera);
-        int[] treeNodeCullFlags = quadTree.GetCullResult(frustum);
+        int[] treeNodeCullFlags = quadTree.GetCullResult(frustum, false, false);
         if (cullShader)
         {
             treeNodeCullFlagBuffer.SetData(treeNodeCullFlags);
+            visibleCluter = 0;
+            foreach (var flag in treeNodeCullFlags)
+            {
+                if (flag == 0)
+                    visibleCluter++;
+            }
             cullShader.SetBuffer(cullTreeKernel, "treeNodeCullFlag", treeNodeCullFlagBuffer);
             
             Vector4[] frustumPlanes = new Vector4[6];
@@ -218,6 +226,7 @@ public class RenderMassTree : MonoBehaviour
         }
     }
 
+    
     private void OnGUI()
     {
         InstanceData[] instanceDatas = quadTree.instanceDatas;
@@ -225,6 +234,8 @@ public class RenderMassTree : MonoBehaviour
         GUI.TextField(allTreeNumRect, "allCount: " + instanceDatas.Length);
         Rect visibleTreeNumRect = new Rect(new Vector2(20, 40), new Vector2(150, 30));
         GUI.TextField(visibleTreeNumRect, "visibleCount: " + visibleCount);
+        Rect visibleClusterNumRect = new Rect(new Vector2(20, 60), new Vector2(150, 30));
+        GUI.TextField(visibleClusterNumRect, "visibleClusterCount: " + visibleCluter);
     }
 
     private void OnDisable()
