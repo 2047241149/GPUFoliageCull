@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 #pragma enable_d3d11_debug_symbols
+//#pragma use_dxc
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
 
@@ -8,6 +9,8 @@ StructuredBuffer<float4> instanceDatas;
 StructuredBuffer<int> treeNodeCullFlag; // 1 mean culled, 0 mean visible
 RWStructuredBuffer<float3> posVisibleBuffer;
 RWStructuredBuffer<int> bufferWithArgs;
+RWStructuredBuffer<int> visiblleIndexBuffer; // for debug index list
+
 int allCount;
 float4 bounds; // center + radius
 float4 frustumPlanes[6];
@@ -46,12 +49,12 @@ float3 TransformToNdc(float3 worldPos)
     return ndc.xyz;
 }
 
-uint GetHizMapIndex(float2 boundMin, float2  boundMax)
+int GetHizMapIndex(float2 boundMin, float2  boundMax)
 {
     float2 uv = (boundMax - boundMin) * hizMapSize;
     uint2 coord = ceil(log2(uv));
     uint index =  max(coord.x, coord.y);
-    return min(index, maxHizMapLevel);
+    return min((int)index, maxHizMapLevel);
 }
 
 bool IsCullByHizMap(float3 pos, float boxWidth)
@@ -81,17 +84,18 @@ bool IsCullByHizMap(float3 pos, float boxWidth)
     float d0 = hizTexture.mips[mip][uv0].r;
     float d1 = hizTexture.mips[mip][uv1].r;
 
-    return boundsMax.z < d0 && boundsMax.z < d1;
+    return boundsMax.z + 0.0002 < d0 && boundsMax.z + 0.0002 < d1;
 }
 
 
-[numthreads(64, 1,1)]
+[numthreads(16, 16,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    if(id.x >= allCount)
+    uint instanceId = id.x * 1000 + id.y;
+    if(instanceId >= allCount)
         return;
     
-    float4 instance = instanceDatas[id.x];
+    float4 instance = instanceDatas[instanceId];
     int clusterId = (int)instance.w;
     if(treeNodeCullFlag[clusterId] == 1)
         return;
@@ -103,5 +107,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         int currentIndex;
         InterlockedAdd(bufferWithArgs[0], 1, currentIndex);
         posVisibleBuffer[currentIndex] = worldPos;
+        visiblleIndexBuffer[currentIndex] = instanceId;
     }
 }

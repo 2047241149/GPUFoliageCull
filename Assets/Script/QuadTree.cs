@@ -15,6 +15,7 @@ static class QuadTreeUtil
 [Serializable]
 public class TreeNode
 {
+    [HideInInspector]
     public TreeNode[] childs;
     public Vector3 boxMin;
     public Vector3 boxMax;
@@ -23,7 +24,6 @@ public class TreeNode
     private QuadTree tree;
     public int leafId = -1;
 
-    
     public TreeNode(QuadTree inTree, List<int> inIndices, Vector2 regionMin, Vector2 regionMax)
     {
         tree = inTree;

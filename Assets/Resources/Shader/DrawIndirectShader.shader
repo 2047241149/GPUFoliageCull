@@ -6,7 +6,11 @@ Shader "Unlit/TestDrawIndirectShader"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { 
+            "RenderType"="Opaque" 
+            "IgnoreProjector" = "True"
+            "DisableBatching" = "True"
+        }
         LOD 100
 
         Pass
@@ -14,7 +18,9 @@ Shader "Unlit/TestDrawIndirectShader"
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-
+            #pragma multi_compile_instancing
+            #pragma enable_d3d11_debug_symbols
+            #pragma use_dxc
             #include "UnityCG.cginc"
 
             struct appdata
@@ -36,13 +42,9 @@ Shader "Unlit/TestDrawIndirectShader"
             v2f vert (appdata v, uint instanceID: SV_InstanceID)
             {
                 v2f o;
+                float4 pos = v.vertex;
                 float3 worldPos = posBuffer[instanceID];
-                float4x4 worldMatrix = float4x4(1, 0, 0, worldPos.x,
-                    0, 1, 0, worldPos.y,
-                    0, 0, 1, worldPos.z,
-                    0, 0, 0, 1);
-                
-                float4 pos = mul(worldMatrix, v.vertex);
+                pos.xyz += worldPos;
                 o.vertex = UnityWorldToClipPos(pos);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
@@ -52,7 +54,7 @@ Shader "Unlit/TestDrawIndirectShader"
             fixed4 frag(v2f i) : SV_Target
             {
                 //fixed4 col = tex2D(_MainTex, i.uv);
-                fixed4 col = fixed4(1.0, 1.0, 0, 1.0);
+                fixed4 col = fixed4(1.0, 0, 0, 1.0);
                 return col;
             }
             ENDCG

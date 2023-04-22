@@ -24,7 +24,7 @@ public class HZBRender : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    public void UpdateHzb()
     {
         depthTexture = Shader.GetGlobalTexture("_CameraDepthTexture");
         int w = hzbTexture.width;
