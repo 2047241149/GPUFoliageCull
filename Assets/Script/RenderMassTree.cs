@@ -40,6 +40,7 @@ public class RenderMassTree : MonoBehaviour
     private List<int> firstIndexs = new List<int>();
     private List<int> secondIndexs = new List<int>();
     private int indexCount = 0;
+    public float PlantScale = 10.0f;
 
     [ContextMenu("BuildTreeRenderData")]
     void BuildTreeRenderData()
@@ -120,6 +121,8 @@ public class RenderMassTree : MonoBehaviour
             return;
         }
         
+        
+        
         /* GPU Cull Setting*/
         mainCamera = Camera.main;
         InstanceData[] instanceDatas = quadTree.instanceDatas;
@@ -133,7 +136,8 @@ public class RenderMassTree : MonoBehaviour
         
         cullShader = Resources.Load<ComputeShader>("Shader/CullFrustumCs");
         cullTreeKernel = cullShader.FindKernel("CSMain");
-        cullShader.SetVector("bounds", new Vector4(sphereBounds.center.x, sphereBounds.center.y, sphereBounds.center.z, sphereBounds.radius));
+        cullShader.SetVector("bounds", new Vector4(sphereBounds.center.x, sphereBounds.center.y, sphereBounds.center.z, sphereBounds.radius * PlantScale));
+        cullShader.SetVector("cameraWorldDirection", mainCamera.transform.forward);
         cullShader.SetBuffer(cullTreeKernel, "instanceDatas", instanceDataBuffer);
         cullShader.SetBuffer(cullTreeKernel, "posVisibleBuffer", posVisibleBuffer);
         cullShader.SetBuffer(cullTreeKernel, "visiblleIndexBuffer", visiblleIndexBuffer);
@@ -152,6 +156,8 @@ public class RenderMassTree : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        treeMaterial.SetFloat("_Scale", PlantScale);
+        
         Profiler.BeginSample("UpdateHzb");
         hzbRender.UpdateHzb();
         Profiler.EndSample();
@@ -219,7 +225,7 @@ public class RenderMassTree : MonoBehaviour
             cullShader.SetFloats("worldToViewProject", mlist);
             cullShader.SetBuffer(cullTreeKernel, "bufferWithArgs", visiblleCountBuffer);
      
-            cullShader.Dispatch(cullTreeKernel, 1000 / 16 + 1, 1000 / 16 + 1, 1);
+            cullShader.Dispatch(cullTreeKernel, 1500 / 16 + 1, 1500 / 16 + 1, 1);
         }
         Profiler.EndSample();
     }
@@ -238,34 +244,41 @@ public class RenderMassTree : MonoBehaviour
                 visiblleIndexBuffer.GetData(indexBufferData);
                 Profiler.EndSample();
                 visibleCount = data[0];
-                indexCount = 1 - indexCount;
-                /*if (indexCount == 0)
-                {
-                    firstIndexs.Clear();
-                    for (int index = 0; index < visibleCount; index++)
-                    {
-                        firstIndexs.Add(indexBufferData[index]);
-                        firstIndexs.Sort();
-                    }
-                }
-                else
-                {
-                    secondIndexs.Clear();
-                    for (int index = 0; index < visibleCount; index++)
-                    {
-                        secondIndexs.Add(indexBufferData[index]);
-                        secondIndexs.Sort();
-                    }
-                }*/
+                /*indexCount = 1 - indexCount;
+                 if (indexCount == 0)
+                 {
+                     if(indexCount <= 10)
+                     {
+                         firstIndexs.Clear();
+                         for (int index = 0; index < visibleCount; index++)
+                         {
+                             firstIndexs.Add(indexBufferData[index]);
+                             firstIndexs.Sort();
+                         }
+                     }
+                     
+                 }
+                 else
+                 {
+                    if(indexCount <= 10)
+                     {
+                         secondIndexs.Clear();
+                         for (int index = 0; index < visibleCount; index++)
+                         {
+                             secondIndexs.Add(indexBufferData[index]);
+                             secondIndexs.Sort();
+                         }
+                     }
+ 
+                 }*/
                 
-
                 uint[] args = new uint[5] { treeMesh.GetIndexCount(0), (uint)visibleCount, 0, 0, 0 };
                 bufferWithArgs.SetData(args);
             }
 
              
             Profiler.EndSample();
-            Graphics.DrawMeshInstancedIndirect(treeMesh, 0, treeMaterial, drawIndirectBounds, bufferWithArgs, 0, null, ShadowCastingMode.Off, false);
+            //Graphics.DrawMeshInstancedIndirect(treeMesh, 0, treeMaterial, drawIndirectBounds, bufferWithArgs, 0, null, ShadowCastingMode.Off, false);
         }
     }
 

@@ -14,6 +14,7 @@ RWStructuredBuffer<int> visiblleIndexBuffer; // for debug index list
 int allCount;
 float4 bounds; // center + radius
 float4 frustumPlanes[6];
+float3 cameraWorldDirection;
 float4x4 worldToViewProject;
 Texture2D<float4> hizTexture;
 float hizMapSize;
@@ -59,6 +60,7 @@ int GetHizMapIndex(float2 boundMin, float2  boundMax)
 
 bool IsCullByHizMap(float3 pos, float boxWidth)
 {
+    float3 offsetPos = pos;
     float3 ndc1 = TransformToNdc(pos + float3(boxWidth, boxWidth, boxWidth));
     float3 ndc2 = TransformToNdc(pos + float3(boxWidth, -boxWidth, boxWidth));
     float3 ndc3 = TransformToNdc(pos + float3(boxWidth, boxWidth, -boxWidth));
@@ -83,15 +85,14 @@ bool IsCullByHizMap(float3 pos, float boxWidth)
 
     float d0 = hizTexture.mips[mip][uv0].r;
     float d1 = hizTexture.mips[mip][uv1].r;
-
-    return boundsMax.z + 0.0002 < d0 && boundsMax.z + 0.0002 < d1;
+    return boundsMax.z < d0 && boundsMax.z < d1;
 }
 
 
 [numthreads(16, 16,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    uint instanceId = id.x * 1000 + id.y;
+    uint instanceId = id.x * 1500 + id.y;
     if(instanceId >= allCount)
         return;
     
