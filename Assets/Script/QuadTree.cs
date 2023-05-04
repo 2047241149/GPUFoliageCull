@@ -102,24 +102,6 @@ public class TreeNode
     }
 }
 
-[Serializable]
-public struct TreeClusterData
-{
-    int[] instances;
-    int instanceNum;
-
-    public TreeClusterData(List<int> treeIndices, int fixedInstanceSize)
-    {
-        instances = new int[fixedInstanceSize];
-        instanceNum = Math.Min(instances.Length, treeIndices.Count);
-
-        for (int index = 0; index < instanceNum; index++)
-        {
-            instances[index] = treeIndices[index];
-        }
-    }
-}
-
 
 
 [Serializable]

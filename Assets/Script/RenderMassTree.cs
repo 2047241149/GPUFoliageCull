@@ -33,7 +33,6 @@ public class RenderMassTree : MonoBehaviour
     private ComputeBuffer posVisibleBuffer;
     private ComputeBuffer visiblleCountBuffer;
     private ComputeBuffer treeNodeCullFlagBuffer;
-    private ComputeBuffer visiblleIndexBuffer;
     private int visibleCount = 0;
     private int visibleCluter = 0;
     private HZBRender hzbRender;
@@ -132,15 +131,13 @@ public class RenderMassTree : MonoBehaviour
         posVisibleBuffer = new ComputeBuffer(instanceDatas.Length, sizeof(float) * 3);
         visiblleCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.IndirectArguments);
         treeNodeCullFlagBuffer = new ComputeBuffer(quadTree.leafId, sizeof(int));
-        visiblleIndexBuffer = new ComputeBuffer(instanceDatas.Length, sizeof(int));
-        
+
         cullShader = Resources.Load<ComputeShader>("Shader/CullFrustumCs");
         cullTreeKernel = cullShader.FindKernel("CSMain");
         cullShader.SetVector("bounds", new Vector4(sphereBounds.center.x, sphereBounds.center.y, sphereBounds.center.z, sphereBounds.radius * PlantScale));
         cullShader.SetVector("cameraWorldDirection", mainCamera.transform.forward);
         cullShader.SetBuffer(cullTreeKernel, "instanceDatas", instanceDataBuffer);
         cullShader.SetBuffer(cullTreeKernel, "posVisibleBuffer", posVisibleBuffer);
-        cullShader.SetBuffer(cullTreeKernel, "visiblleIndexBuffer", visiblleIndexBuffer);
         cullShader.SetInt("allCount", instanceDatas.Length);
         
         /* Draw Indirect Setting*/
@@ -226,6 +223,12 @@ public class RenderMassTree : MonoBehaviour
             cullShader.SetBuffer(cullTreeKernel, "bufferWithArgs", visiblleCountBuffer);
      
             cullShader.Dispatch(cullTreeKernel, 1500 / 16 + 1, 1500 / 16 + 1, 1);
+            
+            int[] data = new int[1];
+            visiblleCountBuffer.GetData(data);
+            visibleCount = data[0];
+            uint[] resultArgs = new uint[5] { treeMesh.GetIndexCount(0), (uint)visibleCount, 0, 0, 0 };
+            bufferWithArgs.SetData(resultArgs);
         }
         Profiler.EndSample();
     }
@@ -234,51 +237,7 @@ public class RenderMassTree : MonoBehaviour
     {
         if(treeMesh && treeMaterial)
         {
-            Profiler.BeginSample("Set DrawMeshInstancedIndirect Params");
-            InstanceData[] instanceDatas = quadTree.instanceDatas;
-            {
-                Profiler.BeginSample("visiblleCountBuffer GetData");
-                int[] data = new int[1];
-                int[] indexBufferData = new int[instanceDatas.Length];
-                visiblleCountBuffer.GetData(data);
-                visiblleIndexBuffer.GetData(indexBufferData);
-                Profiler.EndSample();
-                visibleCount = data[0];
-                /*indexCount = 1 - indexCount;
-                 if (indexCount == 0)
-                 {
-                     if(indexCount <= 10)
-                     {
-                         firstIndexs.Clear();
-                         for (int index = 0; index < visibleCount; index++)
-                         {
-                             firstIndexs.Add(indexBufferData[index]);
-                             firstIndexs.Sort();
-                         }
-                     }
-                     
-                 }
-                 else
-                 {
-                    if(indexCount <= 10)
-                     {
-                         secondIndexs.Clear();
-                         for (int index = 0; index < visibleCount; index++)
-                         {
-                             secondIndexs.Add(indexBufferData[index]);
-                             secondIndexs.Sort();
-                         }
-                     }
- 
-                 }*/
-                
-                uint[] args = new uint[5] { treeMesh.GetIndexCount(0), (uint)visibleCount, 0, 0, 0 };
-                bufferWithArgs.SetData(args);
-            }
-
-             
-            Profiler.EndSample();
-            //Graphics.DrawMeshInstancedIndirect(treeMesh, 0, treeMaterial, drawIndirectBounds, bufferWithArgs, 0, null, ShadowCastingMode.Off, false);
+            Graphics.DrawMeshInstancedIndirect(treeMesh, 0, treeMaterial, drawIndirectBounds, bufferWithArgs, 0, null, ShadowCastingMode.Off, false);
         }
     }
 

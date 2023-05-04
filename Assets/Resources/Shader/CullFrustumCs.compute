@@ -9,7 +9,6 @@ StructuredBuffer<float4> instanceDatas;
 StructuredBuffer<int> treeNodeCullFlag; // 1 mean culled, 0 mean visible
 RWStructuredBuffer<float3> posVisibleBuffer;
 RWStructuredBuffer<int> bufferWithArgs;
-RWStructuredBuffer<int> visiblleIndexBuffer; // for debug index list
 
 int allCount;
 float4 bounds; // center + radius
@@ -108,6 +107,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         int currentIndex;
         InterlockedAdd(bufferWithArgs[0], 1, currentIndex);
         posVisibleBuffer[currentIndex] = worldPos;
-        visiblleIndexBuffer[currentIndex] = instanceId;
     }
 }

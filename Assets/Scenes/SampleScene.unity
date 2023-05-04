@@ -889,9 +889,9 @@ Terrain:
   m_TerrainData: {fileID: 15600000, guid: 8d4ec621c088d8a43ac2528c06e44214, type: 2}
   m_TreeDistance: 5000
   m_TreeBillboardDistance: 50
-  m_TreeCrossFadeLength: 5
-  m_TreeMaximumFullLODCount: 50
-  m_DetailObjectDistance: 80
+  m_TreeCrossFadeLength: 200
+  m_TreeMaximumFullLODCount: 10000
+  m_DetailObjectDistance: 250
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 5
   m_SplatMapDistance: 1000
@@ -1019,7 +1019,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 3000
+  far clip plane: 10000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -1045,10 +1045,10 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1642696106}
-  m_LocalRotation: {x: 0.1307484, y: 0.3579476, z: -0.05070653, w: 0.9231507}
-  m_LocalPosition: {x: 19.818455, y: 10.050156, z: 8.420441}
+  m_LocalRotation: {x: 0.20373975, y: 0.3487052, z: -0.07795246, w: 0.91149235}
+  m_LocalPosition: {x: 19.818455, y: 68.6, z: 8.420441}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 41.4, y: 196.2, z: 4.447}
+  m_LocalEulerAnglesHint: {x: 25.2, y: 41.87, z: -0.001}
