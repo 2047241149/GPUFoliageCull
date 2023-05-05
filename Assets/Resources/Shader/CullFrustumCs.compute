@@ -84,7 +84,7 @@ bool IsCullByHizMap(float3 pos, float boxWidth)
 
     float d0 = hizTexture.mips[mip][uv0].r;
     float d1 = hizTexture.mips[mip][uv1].r;
-    return boundsMax.z < d0 && boundsMax.z < d1;
+    return boundsMax.z + 0.0002 < d0 && boundsMax.z + 0.0002 < d1;
 }
 
 
